@@ -1,0 +1,35 @@
+---
+- hosts: localhost
+  connection: local
+  vars:
+    users:
+      - harish
+      - sai
+      - uma
+  tasks:
+  - name: Ensure group "somegroup" exists
+    group:
+      name: admin
+      state: present
+  - name: Get all groups
+    getent:
+      database: group
+      split: ':'
+  - debug:
+      var: getent_group
+  - name: "Create user accounts and add users to groups"
+    user:
+      name: "{{ item }}"
+      group: admin
+    with_items: "{{ users }}
+  - name: "Add authorized keys"
+    authorized_key:
+      user: "{{ item }}"
+      key: "{{ lookup('file', 'files/'+ item + '.key.pub') }}"
+    with_items: "{{ users }}"
+  - name: "Allow admin users to sudo without a password"
+    lineinfile:
+      dest: "/etc/sudoers" # path: in version 2.3
+      state: "present"
+      regexp: "^%admin"
+      line: "%admin ALL=(ALL) NOPASSWD: ALL"
